@@ -4,5 +4,6 @@ const puppeteer = require('puppeteer');
     const page = await browser.newPage();
     await page.goto('https://example.com');
     await page.screenshot({ path: 'example.png' });
+    await page.pdf({ path: 'example.pdf' })
     await browser.close();
 })();
