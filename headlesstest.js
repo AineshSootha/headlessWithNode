@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const { PDFDocument } = require('pdf-lib');
+const pdf = require('pdf-parse');
 
 var fs = require('fs');
 var path = require('path');
@@ -16,8 +17,23 @@ function footerTFirstPage() {
     </style>
     <footer class="footerPuppeteer" style="border-top: solid 1px #bbb; width: 100%; font-size: 9px;
     padding: 5px 5px 0; color: #bbb; position: relative;">
-        <div style="position: absolute; left: 5px; top: 5px;">Header Page</div>
+        <div style="position: absolute; left: 5px; top: 5px;">This is a different footer for the First Page</div>
         <div style="position: absolute; right: 5px; top: 5px;">First Page</div>
+    </footer>
+    `
+}
+
+function footerTLastPage() {
+    return `
+    <style>
+        footer:first-of-type{
+            color: aqua;
+        }
+    </style>
+    <footer class="footerPuppeteer" style="border-top: solid 1px #bbb; width: 100%; font-size: 9px;
+    padding: 5px 5px 0; color: #bbb; position: relative;">
+        <div style="position: absolute; left: 5px; top: 5px;">This is a different footer for the Last Page</div>
+        <div style="position: absolute; right: 5px; top: 5px;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
     </footer>
     `
 }
@@ -43,7 +59,7 @@ function base64Encode(file) {
 }
 
 function logo() {
-    return '<img height="50px" src="data:image/png;base64,' + base64Encode(appRoot + "/logo.png") + '"/>';
+    return '<div></div>';
 }
 
 (async() => {
@@ -63,7 +79,7 @@ function logo() {
     await watchDog;
     console.timeEnd('waitForFun');
     console.time('firstPDF');
-    const page1 = await page.pdf({
+    const firstPage = await page.pdf({
         //path: 'portrait3.pdf',
         displayHeaderFooter: true,
         headerTemplate: logo(),
@@ -83,11 +99,25 @@ function logo() {
     });
     console.timeEnd('secondPDF');
     console.time('PDF Merges');
-    const page1Doc = await PDFDocument.load(page1);
     const mainPDFBuffer = fs.readFileSync('portrait3.pdf');
+    const pdfForPageNums = await pdf(mainPDFBuffer);
+    let numPages = pdfForPageNums.numpages;
+    const lastPage = await page.pdf({
+        displayHeaderFooter: true,
+        headerTemplate: logo(),
+        footerTemplate: footerTLastPage(),
+        pageRanges: `${numPages + 1}`,
+        margin: { top: "50px", bottom: "100px" },
+    });
+    const firstPageDoc = await PDFDocument.load(firstPage);
+    const lastPageDoc = await PDFDocument.load(lastPage);
     const mainPDF = await PDFDocument.load(mainPDFBuffer);
-    const copiedPage1 = await mainPDF.copyPages(page1Doc, [0]);
-    mainPDF.insertPage(0, copiedPage1[0]);
+    const copiedFirstPage = await mainPDF.copyPages(firstPageDoc, [0]);
+    const copiedLastPage = await mainPDF.copyPages(lastPageDoc, [0]);
+    mainPDF.removePage(numPages - 1); //Delete last page with wrong footer
+    mainPDF.insertPage(0, copiedFirstPage[0]); //Add first page
+    mainPDF.addPage(copiedLastPage[0]); //Add last page with correct footer
+
     fs.writeFileSync('portrait3.pdf', await mainPDF.save());
     console.timeEnd('PDF Merges');
     await browser.close();
