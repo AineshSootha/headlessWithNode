@@ -121,7 +121,7 @@
     </div>
     <script>
         // create the chart
-        var done = []
+        let done = []
         console.log("HELLO!");
 
 
@@ -217,6 +217,14 @@
 
             });
         }
+
+        function printReady() {
+            if (done.length !== 4) {
+                window.setTimeout(printReady, 100); /* this checks the flag every 100 milliseconds*/
+            } else {
+                console.log("print-ready");
+            }
+        }
         $(document).ready(function() {
             $.ajax({
                 url: 'https://api.jsonbin.io/b/60edc48ca917050205c6989d',
@@ -242,6 +250,7 @@
                     spData(data);
                 }
             });
+            printReady();
         });
     </script>
 </body>
