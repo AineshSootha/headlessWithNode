@@ -24,35 +24,34 @@ function footerT(page) {
 }
 
 
-
-function base64Encode(file) {
-    return fs.readFileSync(file, { encoding: 'base64' });
-}
-
-function logo() {
+function emptyHeader() {
     return '<div></div>';
 }
 
+
+
 (async() => {
+    const pageURL = process.argv[2];
+    console.log(pageURL);
     console.time('start');
     console.time('launch');
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({});
     console.timeEnd('launch');
     console.time('newPage');
     const page = await browser.newPage();
     console.timeEnd('newPage');
     console.time('goto');
-    await page.goto(`file:${path.join(__dirname, 'example.html')}`); //await page.goto(pageURL);
+    await page.goto(pageURL);
+    console.log(`file:${path.join(__dirname, 'example.html')}`); //
     console.timeEnd('goto');
     console.time('waitForFun');
     const watchDog = page.waitForFunction('done.length === 4');
     await watchDog;
     console.timeEnd('waitForFun');
     console.time('firstPDF');
-
     const firstPage = await page.pdf({
         displayHeaderFooter: true,
-        headerTemplate: logo(),
+        headerTemplate: emptyHeader(),
         footerTemplate: footerT("first"),
         pageRanges: '1',
         margin: { top: "50px", bottom: "100px" },
@@ -63,7 +62,7 @@ function logo() {
     await page.pdf({
         path: 'portrait3.pdf',
         displayHeaderFooter: true,
-        headerTemplate: logo(),
+        headerTemplate: emptyHeader(),
         footerTemplate: footerT("main"),
         pageRanges: '2-',
         margin: { top: "50px", bottom: "100px" },
@@ -77,7 +76,7 @@ function logo() {
     console.time('thirdPDF');
     const lastPage = await page.pdf({
         displayHeaderFooter: true,
-        headerTemplate: logo(),
+        headerTemplate: emptyHeader(),
         footerTemplate: footerT("last"),
         pageRanges: `${numPages + 1}`,
         margin: { top: "50px", bottom: "100px" },
@@ -93,7 +92,6 @@ function logo() {
     mainPDF.removePage(numPages - 1); //Delete last page with wrong footer
     mainPDF.insertPage(0, copiedFirstPage[0]); //Add first page
     mainPDF.addPage(copiedLastPage[0]); //Add last page with correct footer
-
     fs.writeFileSync('portrait3.pdf', await mainPDF.save());
     console.timeEnd('PDF Merges');
     await browser.close();
